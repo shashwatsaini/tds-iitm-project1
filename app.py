@@ -1,3 +1,7 @@
+__import__('pysqlite3')
+import sys
+sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+
 import os
 import base64
 from flask import Flask, request, jsonify
@@ -78,6 +82,9 @@ def api_handler():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route('/', methods=['GET'])
+def home():
+    return '✅ App is up and running!', 200
 
 if __name__ == '__main__':
     app.run(debug=True, threaded=True)
