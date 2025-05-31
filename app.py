@@ -5,10 +5,12 @@ sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 import os
 import base64
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 from crewai import Crew, Process, LLM
 from agents import return_rag_agent, return_context_agent
 
 app = Flask(__name__)
+cors = CORS(app)
 
 # Base LLM config
 llm = LLM(
