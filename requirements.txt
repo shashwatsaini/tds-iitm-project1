@@ -68,7 +68,7 @@ huggingface-hub==0.32.3
 humanfriendly==10.0
 hyperframe==6.1.0
 idna==3.10
-importlib_metadata==8.6.1
+importlib_metadata==8.5.0
 importlib_resources==6.5.2
 instructor==1.8.3
 ipython==9.2.0
