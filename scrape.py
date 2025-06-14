@@ -6,70 +6,13 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
-from bs4 import BeautifulSoup  
-from rapidfuzz import fuzz
+from bs4 import BeautifulSoup
 
 TDS_COURSE_PAGE_SCRAPED_FILE = 'tds_course_page_scraped.pkl'
 TDS_DISCOURSE_PAGE_SCRAPED_FILE = 'tds_discourse_page_scraped.pkl'
 
 DISCOURSE_EMAIL = os.environ['DISCOURSE_EMAIL']
 DISCOURSE_PASSWORD = os.environ['DISCOURSE_PASSWORD']
-
-def query_tds_course_page(query, threshold=60):
-    """
-    Returns the URL of the page with the highest similarity score above threshold.
-    Uses fuzzy matching to find the most probable page for the query.
-    """
-    if os.path.exists(TDS_COURSE_PAGE_SCRAPED_FILE):
-        with open(TDS_COURSE_PAGE_SCRAPED_FILE, 'rb') as f:
-            visited_pages = pickle.load(f)
-        
-        normalized_query = query.lower().strip()
-        best_score = 0
-        best_url = None
-
-        for url, content in visited_pages.items():
-            normalized_content = content.lower().strip()
-            # Compute similarity ratio
-            score = fuzz.partial_ratio(normalized_query, normalized_content)
-            if score > best_score:
-                best_score = score
-                best_url = url
-        
-        if best_score >= threshold:
-            return best_url
-        else:
-            return None
-    else:
-        return None
-    
-def query_tds_discourse_page(query, threshold=60):
-    """
-    Returns the URL of the page with the highest similarity score above threshold.
-    Uses fuzzy matching to find the most probable page for the query.
-    """
-    if os.path.exists(TDS_DISCOURSE_PAGE_SCRAPED_FILE):
-        with open(TDS_DISCOURSE_PAGE_SCRAPED_FILE, 'rb') as f:
-            visited_pages = pickle.load(f)
-        
-        normalized_query = query.lower().strip()
-        best_score = 0
-        best_url = None
-
-        for url, content in visited_pages.items():
-            normalized_content = content.lower().strip()
-            # Compute similarity ratio
-            score = fuzz.partial_ratio(normalized_query, normalized_content)
-            if score > best_score:
-                best_score = score
-                best_url = url
-        
-        if best_score >= threshold:
-            return best_url
-        else:
-            return None
-    else:
-        return None
 
 def scrape_tds_course_page():
     """
@@ -224,3 +167,6 @@ def scrape_tds_discource_page():
 
     print(f"Scraped and cached {len(visited_pages)} pages to pickle.")
     return visited_pages
+
+scrape_tds_course_page()
+scrape_tds_discource_page()

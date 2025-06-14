@@ -1,27 +1,37 @@
-__import__('pysqlite3')
-import sys
-sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+import json
 
-import os
-import base64
+from langchain.chat_models import init_chat_model
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from langchain_chroma import Chroma
+
+import faiss
+from langchain_community.docstore.in_memory import InMemoryDocstore
+from langchain_community.vectorstores import FAISS
+
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from crewai import Crew, Process, LLM
-from agents import return_rag_agent, return_context_agent
+
+from vectordb import vectordb_init
+from graphs import graph_1, graph_2
 
 app = Flask(__name__)
 cors = CORS(app)
 
-# Base LLM config
-llm = LLM(
-    model='gemini/gemini-2.0-flash',
-    api_key=os.environ['GEMINI_API_KEY']
-)
+llm = init_chat_model("gemini-2.0-flash", model_provider="google_genai")
+embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
 
-# Load agents
-rag_tool, rag_agent, rag_task = return_rag_agent(llm)
-context_agent, context_task = return_context_agent(llm)
+embedding_dim = len(embeddings.embed_query("hello world"))
+index = faiss.IndexFlatL2(embedding_dim)
+vector_store = FAISS(
+        embedding_function=embeddings,
+        index=index,
+        docstore=InMemoryDocstore(),
+        index_to_docstore_id={},
+    )
 
+vectordb_init(llm, embeddings, index, vector_store)
+basic_answer_graph = graph_1(llm, vector_store)
+refinement_graph = graph_2(llm)
 
 @app.route('/api/', methods=['POST'])
 def api_handler():
@@ -36,50 +46,39 @@ def api_handler():
         # Optional field
         link = data.get('link', '').strip()
 
-        # Step 1: Run RAG crew
-        crew = Crew(
-            name='crew',
-            agents=[rag_agent],
-            tasks=[rag_task],
-            process=Process.sequential,
-            description='RAG crew to answer TDS questions.',
-            verbose=False
-        )
+        # Step 1: Run Graph 1 - retrieve and generate initial answer
+        initial_state = {"question": question}
+        result = basic_answer_graph.graph.invoke(initial_state)
+        initial_answer = result["answer"]
 
+        # Step 2: Refine using documents in the latest retrieval log
+        link_objects = []
 
-        if link:
-            rag_result = crew.kickoff(inputs={"question": question + f' helpful link: {link}'})
-        else:
-            rag_result = crew.kickoff(inputs={"question": question})
-
-        # Step 2: Context crew for each document retrieved
-        context_crew = Crew(
-            name='context_crew',
-            agents=[context_agent],
-            tasks=[context_task],
-            process=Process.sequential,
-            description='Crew to summarize URLs in ONE LINE.',
-            verbose=False
-        )
-
-        link_summaries = []
-        for url in rag_tool.retrieved_docs:
-            output = context_crew.kickoff(inputs={"question": question, "url": url})
-
-            if output.tasks_output and len(output.tasks_output) > 0:
-                summary = output.tasks_output[0].raw.strip().replace('\n', ' ')
-            else:
-                summary = "No summary available."
-
-            link_summaries.append({
-                "url": url,
-                "text": summary
+        for doc in basic_answer_graph.retrieval_log[-1]["retrieved"][:2]:
+            refine_result = refinement_graph.graph.invoke({
+                "question": question,
+                "answer": initial_answer,
+                "doc": doc
             })
 
+            try:
+                # Parse string response to JSON
+                refined_text = refine_result['refined_answer']
+                url = doc.metadata['source']
+
+                if refined_text and url:
+                    link_objects.append({
+                        "url": url,
+                        "text": refined_text
+                    })
+                    
+            except Exception as e:
+                print(e)
+
         return jsonify({
-            "answer": rag_result.raw,
-            "links": link_summaries
-        })
+            "answer": initial_answer,
+            "links": link_objects
+        })        
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
