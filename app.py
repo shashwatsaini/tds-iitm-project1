@@ -2,7 +2,6 @@ import json
 
 from langchain.chat_models import init_chat_model
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
-from langchain_chroma import Chroma
 
 import faiss
 from langchain_community.docstore.in_memory import InMemoryDocstore

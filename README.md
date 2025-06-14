@@ -1,9 +1,9 @@
-# RAG-Powered Q\&A System with Langchain and Chroma DB
+# RAG-Powered Q\&A System with Langchain and FAISS DB
 ### *For IITM Tools in Data Science - Project 1*
 
 ## Overview
 
-This project implements a Retrieval-Augmented Generation (RAG) based question-answering system using **LangChain**, integrated with a **Chroma vector database** for document retrieval and contextual reasoning. It is tailored for IITM’s Tools in Data Science course, enabling users to query course-related content with high relevance and transparency.
+This project implements a Retrieval-Augmented Generation (RAG) based question-answering system using **LangChain**, integrated with a **FAISS vector database** for document retrieval and contextual reasoning. It is tailored for IITM’s Tools in Data Science course, enabling users to query course-related content with high relevance and transparency.
 
 ---
 
@@ -14,9 +14,9 @@ This project implements a Retrieval-Augmented Generation (RAG) based question-an
    - Discourse scraping is authenticated using student credentials, as content access is restricted to verified users.
    - The cached content avoids redundant scraping and accelerates system performance.
 
-2. **RAG Pipeline with LangChain and Chroma DB**
+2. **RAG Pipeline with LangChain and FAISS DB**
    - Cached documents are converted into embeddings using a LangChain-compatible embedding model.
-   - The embeddings are stored in a **Chroma vector store**, with smart hash-based checks to ensure incremental updates without duplication.
+   - The embeddings are stored in a **FAISS vector store**, with smart hash-based checks to ensure incremental updates without duplication.
    - The LangChain RAG pipeline uses this vector store to retrieve relevant chunks for a given question.
 
 3. **Question Handling via LangChain Chain**
